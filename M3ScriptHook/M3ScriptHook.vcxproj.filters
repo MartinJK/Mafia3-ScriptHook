@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\shared">
+      <UniqueIdentifier>{6786a040-57e8-4063-8d9a-7b152f9b8b72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\shared\hooking">
+      <UniqueIdentifier>{e4e9f873-a7fb-43ec-91fd-014009ab242a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\hooking">
+      <UniqueIdentifier>{61249bd8-fcc0-483a-b203-97da58df4a4f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include/LuaFunctions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include/LuaStateManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include/PluginSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\include\singleton.h">
+      <Filter>Header Files\shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\include\hooking\hooking.h">
+      <Filter>Header Files\shared\hooking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\include\hooking\jitasm.h">
+      <Filter>Header Files\shared\hooking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\include\hooking\PatternPool.h">
+      <Filter>Header Files\shared\hooking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\include\hooking\udis86.h">
+      <Filter>Header Files\shared\hooking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\include\fnv1.h">
+      <Filter>Header Files\shared</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ScriptSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\M3ScriptHook.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src/LuaFunctions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src/LuaStateManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src/PluginSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\include\hooking\hooking.cpp">
+      <Filter>Source Files\hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ScriptSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\M3ScriptHook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
