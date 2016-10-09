@@ -61,12 +61,14 @@ void ScriptSystem::LoadScripts()
 
 void ScriptSystem::UnloadScripts()
 {
+	M3ScriptHook::instance()->log(__FUNCTION__);
 	// TBD
 }
 
 void ScriptSystem::ReloadScripts()
 {
-	if (this->scripts.size()) {
+	M3ScriptHook::instance()->log(__FUNCTION__);
+	if (this->scripts.size() != 0) {
 		this->UnloadScripts();
 	}
 

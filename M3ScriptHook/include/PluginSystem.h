@@ -58,5 +58,6 @@ public:
 	void ReloadPlugins();
 	void StartPlugins();
 	void StopPlugins();
+	void RelaunchPlugins();
 };
 

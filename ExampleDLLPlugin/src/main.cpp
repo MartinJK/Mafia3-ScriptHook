@@ -68,8 +68,12 @@ uint32_t WINAPI ExampleDLLPlugin::ProcessThread(LPVOID)
 
 void ExampleDLLPlugin::Patch()
 {
-	auto loadingScreenPatch = hooking::pattern("40 55 53 57 41 54 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ?").get(0).origaddr();
-	hooking::put<uint32_t>(loadingScreenPatch, 0x90C300B0);
+	auto loadingScreenPatch = hooking::pattern("40 55 53 57 41 54 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ?");
+	auto matches = loadingScreenPatch.matches().size();
+	if (matches == 1) {
+		auto addr = loadingScreenPatch.get(0).origaddr();
+		hooking::put<uint32_t>(addr, 0x90C300B0);
+	}
 }
 
 void ExampleDLLPlugin::Shutdown()

@@ -73,16 +73,18 @@ void PluginSystem::LoadPlugins()
 		plugin.pStopPlugin = pStopPlugin;
 		plugins.push_back(plugin);
 
-		M3ScriptHook::instance()->log(__FUNCTION__ " loaded plugin " + path);
+		M3ScriptHook::instance()->log(__FUNCTION__ " loaded plugin " + plugin.name);
 
 	} while (file && FindNextFile(file, &data));
 }
 
 void PluginSystem::UnloadPlugins()
 {
+	M3ScriptHook::instance()->log(__FUNCTION__);
 	this->StopPlugins();
 
 	for (auto& plugin : this->plugins) {
+		M3ScriptHook::instance()->log(__FUNCTION__ " unloaded plugin " + plugin.name);
 		FreeLibrary(GetModuleHandleA(plugin.name.c_str()));
 	}
 
@@ -91,27 +93,45 @@ void PluginSystem::UnloadPlugins()
 
 void PluginSystem::ReloadPlugins()
 {
-	if (this->plugins.size()) {
+	M3ScriptHook::instance()->log(__FUNCTION__);
+	if (this->plugins.size() != 0) {
 		this->UnloadPlugins();
 	}
 
 	this->LoadPlugins();
+	this->StartPlugins();
 }
-
 
 void PluginSystem::StartPlugins()
 {
 	M3ScriptHook::instance()->log(__FUNCTION__);
+#if 0
 	for (auto& plugin : this->plugins) {
 		plugin.pStartPlugin(LuaStateManager::instance()->GetState());
 	}
+#else
+	for (uint32_t i = 0; i < plugins.size(); ++i) {
+		plugins[i].pStartPlugin(LuaStateManager::instance()->GetState());
+	}
+#endif
 }
-
 
 void PluginSystem::StopPlugins()
 {
 	M3ScriptHook::instance()->log(__FUNCTION__);
+#if 0
 	for (auto& plugin : this->plugins) {
 		plugin.pStopPlugin();
 	}
+#else
+	for (uint32_t i = 0; i < plugins.size(); ++i) {
+		plugins[i].pStopPlugin();
+	}
+#endif
+}
+
+void PluginSystem::RelaunchPlugins()
+{
+	this->StopPlugins();
+	this->StartPlugins();
 }

@@ -141,11 +141,21 @@ uint32_t WINAPI M3ScriptHook::mainThread(LPVOID) {
 		std::this_thread::yield(); // Process other threads
 
 		if (GetAsyncKeyState(VK_F1) & 1) {
-			ScriptSystem::instance()->LoadScripts();
+			ScriptSystem::instance()->ReloadScripts();
 		}
 
 		if (GetAsyncKeyState(VK_F3) & 1) {
 			instance->Shutdown();
+		}
+
+		if (GetAsyncKeyState(VK_F6) & 1) {
+			instance->Shutdown();
+			PluginSystem::instance()->UnloadPlugins();
+		}
+
+		if (GetAsyncKeyState(VK_F7) & 1) {
+			instance->Shutdown();
+			PluginSystem::instance()->ReloadPlugins();
 		}
 	}
 
@@ -156,8 +166,6 @@ void M3ScriptHook::StartThreads()
 {
 	this->log(__FUNCTION__);
 	CreateThread(0, 0, (LPTHREAD_START_ROUTINE)M3ScriptHook::mainThread, 0, 0, 0);
-	//auto thread = std::thread(M3ScriptHook::mainThread);
-	//thread.detach();
 
 	LuaStateManager::instance()->StartThread();
 }
@@ -182,7 +190,7 @@ BOOL APIENTRY DllMain(HMODULE, DWORD code, LPVOID) {
 		M3ScriptHook::instance()->StartThreads();
 		break;
 	case DLL_PROCESS_DETACH:
-		M3ScriptHook::instance()->EndThreads();
+		M3ScriptHook::instance()->Shutdown();
 		break;
 	}
 	return TRUE;

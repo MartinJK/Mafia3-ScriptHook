@@ -32,6 +32,7 @@
 #include <Windows.h>
 #include <LuaFunctions.h>
 #include <M3ScriptHook.h>
+#include <ScriptSystem.h>
 #include <chrono>
 #include <thread>
 
@@ -48,13 +49,19 @@ LuaStateManager::~LuaStateManager()
 
 void LuaStateManager::StartThread()
 {
+	M3ScriptHook::instance()->log(__FUNCTION__);
 	CreateThread(0, 0, (LPTHREAD_START_ROUTINE)LuaStateManager::WatcherThread, 0, 0, 0);
 }
 
 void LuaStateManager::StateChanged(lua_State *L)
 {
+	++this->m_stateChangeCount;
+
+	M3ScriptHook::instance()->log(__FUNCTION__);
 	this->m_pLuaState = L;
-	PluginSystem::instance()->StartPlugins();
+
+	this->m_stateChangeCount == 1 ? PluginSystem::instance()->StartPlugins() :PluginSystem::instance()->RelaunchPlugins();
+	ScriptSystem::instance()->ReloadScripts();
 }
 
 lua_State* LuaStateManager::GetState()

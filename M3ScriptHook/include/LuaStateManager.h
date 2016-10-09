@@ -38,6 +38,7 @@ class LuaStateManager: public singleton<LuaStateManager>
 private:
 	lua_State *m_pLuaState = nullptr;
 	bool m_bEnded = false;
+	int32_t m_stateChangeCount = 0;
 		
 	void StateChanged(lua_State *L);
 
