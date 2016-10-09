@@ -1,1 +1,0 @@
-game.game:GetActivePlayer():GetOwner():SetEngineOn(false)
