@@ -16,10 +16,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\shared\include\Common.h" />
+    <ClInclude Include="resources\resource.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\copydebug.bat" />
     <None Include="..\copyrelease.bat" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resources\M3.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CA29DBC0-E648-4470-AA81-9082B143FBDA}</ProjectGuid>
