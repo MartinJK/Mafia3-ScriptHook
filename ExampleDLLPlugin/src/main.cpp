@@ -56,7 +56,7 @@ uint32_t WINAPI ExampleDLLPlugin::ProcessThread(LPVOID)
 		if (!init)
 		{
 			init = true;
-			ExampleDLLPlugin::instance()->Patch();
+		//	ExampleDLLPlugin::instance()->Patch(); // Disabled as not everybody wants to patch that..
 		}
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -70,7 +70,7 @@ void ExampleDLLPlugin::Patch()
 {
 	auto loadingScreenPatch = hooking::pattern("40 55 53 57 41 54 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ?");
 	auto matches = loadingScreenPatch.matches().size();
-	if (matches == 1) {
+	if (matches == 1) { // Check match count because if the plugin got reloaded, the pattern does no longer exist because we have overwritten it...
 		auto addr = loadingScreenPatch.get(0).origaddr();
 		hooking::put<uint32_t>(addr, 0x90C300B0);
 	}
