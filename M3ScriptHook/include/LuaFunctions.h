@@ -38,6 +38,7 @@ private:
 	bool m_mainScriptMachineReady = false;
 	C_ScriptGameMachine *m_pMainGameScriptMachine = nullptr;
 
+	static int32_t PrintToLog(lua_State*);
 public:
 	LuaFunctions();
 	virtual ~LuaFunctions() = default;
@@ -45,8 +46,11 @@ public:
 	C_ScriptGameMachine *GetMainGameScriptMachine();
 	bool IsMainScriptMachineReady();
 	bool LoadPointers();
+	bool Setup();
 };
 
-__declspec(dllexport) int luaL_loadbuffer(lua_State *L, char *buff, size_t size, char *name);
-__declspec(dllexport) int lua_pcall2(lua_State *L, int nargs, int nresults, int errfunc);
+__declspec(dllexport) int luaL_loadbuffer_(lua_State *L, char *buff, size_t size, char *name);
+__declspec(dllexport) int lua_pcall_(lua_State *L, int nargs, int nresults, int errfunc);
+__declspec(dllexport) const char *lua_tolstring_(lua_State *L, int32_t idx);
+__declspec(dllexport) lua_State *lua_newthread_(lua_State *L);
 __declspec(dllexport) void logPointer(std::string name, uint64_t pointer);

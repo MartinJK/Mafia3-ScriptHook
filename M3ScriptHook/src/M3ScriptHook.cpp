@@ -99,9 +99,9 @@ bool M3ScriptHook::ExecuteLua(lua_State *L, const std::string &lua)
 		return false;
 	}
 
-	luaL_loadbuffer(L, const_cast<char*>(lua.c_str()), lua.length(), "test");
+	luaL_loadbuffer_(L, const_cast<char*>(lua.c_str()), lua.length(), "test");
 
-	int32_t result = lua_pcall2(L, 0, LUA_MULTRET, 0);
+	int32_t result = lua_pcall_(L, 0, LUA_MULTRET, 0);
 
 	if (result != 0)
 	{
@@ -121,8 +121,7 @@ bool M3ScriptHook::ExecuteLua(lua_State *L, const std::string &lua)
 			ss << "Error loading Lua code into buffer. Error ";
 			ss << result;
 			this->log(ss.str());
-			size_t size = 0;
-			const char *error = lua_tolstring(L, -1, &size);
+			const char *error = lua_tolstring_(L, -1);
 			this->log(error);
 			return false;
 		}

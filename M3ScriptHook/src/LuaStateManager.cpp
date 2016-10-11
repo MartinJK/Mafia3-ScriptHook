@@ -55,10 +55,12 @@ void LuaStateManager::StartThread()
 
 void LuaStateManager::StateChanged(lua_State *L)
 {
-	++this->m_stateChangeCount;
-
 	M3ScriptHook::instance()->log(__FUNCTION__);
+
+	++this->m_stateChangeCount;
 	this->m_pLuaState = L;
+
+	LuaFunctions::instance()->Setup();
 
 	this->m_stateChangeCount == 1 ? PluginSystem::instance()->StartPlugins() :PluginSystem::instance()->RelaunchPlugins();
 	ScriptSystem::instance()->ReloadScripts();
@@ -67,7 +69,7 @@ void LuaStateManager::StateChanged(lua_State *L)
 lua_State* LuaStateManager::GetState()
 {
 	if (this->m_pLuaState) {
-		return lua_newthread(this->m_pLuaState);
+		return lua_newthread_(this->m_pLuaState);
 	}
 	else {
 		return nullptr;

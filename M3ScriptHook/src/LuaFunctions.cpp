@@ -35,6 +35,7 @@
 #include <M3ScriptHook.h>
 #include <cstdint>
 #include <hooking/hooking.h>
+#include <fstream>
 
 /************************************************************************/
 /* Find pattern implementation											*/
@@ -52,7 +53,7 @@ uint64_t GetPointerFromPattern(const char *name, const char *pattern)
 typedef int(__cdecl *luaL_loadbuffer_t)(lua_State *L, char *buff, size_t size, char *name);
 luaL_loadbuffer_t		pluaL_loadbuffer = nullptr;
 
-__declspec(dllexport) int luaL_loadbuffer(lua_State *L, char *buff, size_t size, char *name)
+__declspec(dllexport) int luaL_loadbuffer_(lua_State *L, char *buff, size_t size, char *name)
 {
 	return pluaL_loadbuffer(L, buff, size, name);
 }
@@ -60,10 +61,10 @@ __declspec(dllexport) int luaL_loadbuffer(lua_State *L, char *buff, size_t size,
 /************************************************************************/
 /* Lua pcall implementation                                             */
 /************************************************************************/
-typedef int(__cdecl *lua_pcall2_t)(lua_State *L, int32_t nargs, int32_t nresults, int32_t errfunc);
-lua_pcall2_t				plua_pcall2 = nullptr;
+typedef int(__cdecl *lua_pcall_t)(lua_State *L, int32_t nargs, int32_t nresults, int32_t errfunc);
+lua_pcall_t				plua_pcall2 = nullptr;
 
-__declspec(dllexport) int lua_pcall2(lua_State *L, int32_t nargs, int32_t nresults, int32_t errfunc)
+__declspec(dllexport) int lua_pcall_(lua_State *L, int32_t nargs, int32_t nresults, int32_t errfunc)
 {
 	return plua_pcall2(L, nargs, nresults, errfunc);
 }
@@ -71,12 +72,12 @@ __declspec(dllexport) int lua_pcall2(lua_State *L, int32_t nargs, int32_t nresul
 /************************************************************************/
 /* Lua tolstring implementation                                         */
 /************************************************************************/
-typedef const char *	(__cdecl *lua_tolstring_t) (lua_State *L, int32_t idx, size_t *len);
+typedef const char *	(__cdecl *lua_tolstring_t) (lua_State *L, int32_t idx);
 lua_tolstring_t			plua_tolstring = nullptr;
 
-__declspec(dllexport) const char *lua_tolstring(lua_State *L, int32_t idx, size_t *len)
+__declspec(dllexport) const char *lua_tolstring_(lua_State *L, int32_t idx)
 {
-	return plua_tolstring(L, idx, len);
+	return plua_tolstring(L, idx);
 }
 
 /************************************************************************/
@@ -85,9 +86,48 @@ __declspec(dllexport) const char *lua_tolstring(lua_State *L, int32_t idx, size_
 typedef	lua_State *		(__cdecl *lua_newthread_t) (lua_State *L);
 lua_newthread_t		plua_newthread = nullptr;
 
-__declspec(dllexport) lua_State *lua_newthread(lua_State *L)
+__declspec(dllexport) lua_State *lua_newthread_(lua_State *L)
 {
 	return plua_newthread(L);
+}
+
+/************************************************************************/
+/* Lua pushcclosure implementation                                      */
+/************************************************************************/
+typedef	lua_State *		(__cdecl *lua_pushcclosure_t) (lua_State *L, lua_CFunction fn, int n);
+lua_pushcclosure_t		plua_pushcclosure = nullptr;
+
+__declspec(dllexport) lua_State *lua_pushcclosure_(lua_State *L, lua_CFunction fn, int n)
+{
+	return plua_pushcclosure(L, fn, n);
+}
+
+/************************************************************************/
+/* Lua setglobal implementation		                                    */
+/************************************************************************/
+typedef	lua_State *		(__cdecl *lua_setglobal_t) (lua_State *L, const char *var);
+lua_setglobal_t		  plua_setglobal = nullptr;
+
+__declspec(dllexport) lua_State *lua_setglobal_(lua_State *L, const char *var)
+{
+	return plua_setglobal(L, var);
+}
+
+/************************************************************************/
+/* Lua setfield implementation		                                    */
+/************************************************************************/
+typedef	lua_State *		(__cdecl *lua_setfield_t) (lua_State *L, int idx, const char *k);
+lua_setfield_t		  plua_setfield = nullptr;
+
+__declspec(dllexport) lua_State *lua_setglobal_(lua_State *L, int idx, const char *k)
+{
+	return plua_setfield(L, idx, k);
+}
+
+//
+int32_t lua_gettop_(lua_State *L)
+{
+	return (int32_t)((*(uintptr_t *)((uintptr_t)L + 72) - *(uintptr_t *)((uintptr_t)L + 80)) >> 4);
 }
 
 //
@@ -107,6 +147,31 @@ lua_State* GetL(C_ScriptGameMachine *pMainScriptMachine)
 
 	auto luaPtr = *(lua_State **)((uintptr_t)pMainScriptMachine + 208);
 	return luaPtr;
+}
+
+int32_t LuaFunctions::PrintToLog(lua_State *L)
+{
+	MessageBoxA(NULL, "works", "works", 0);
+	int32_t numargs = lua_gettop_(L);
+	M3ScriptHook::instance()->log(std::to_string(numargs));
+	if (numargs != 2)
+		return 0;
+
+	const char *logFile = lua_tolstring_(L, 1);
+	const char *message = lua_tolstring_(L, 2);
+
+	M3ScriptHook::instance()->log(message);
+	M3ScriptHook::instance()->log(logFile);
+
+	const char * msg1 = (const char*)*(uintptr_t *)((uintptr_t)L + 72) + 16 * 1;
+	M3ScriptHook::instance()->log(msg1);
+
+	std::fstream file(logFile, std::ios::out | std::ios::app);
+	file << message;
+	file << "\n";
+	file.close();
+
+	return 0;
 }
 
 //
@@ -143,13 +208,13 @@ bool LuaFunctions::LoadPointers()
 	}
 
 	//
-	plua_pcall2 = (lua_pcall2_t)GetPointerFromPattern("lua_pcall2", "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 60 4C 63 FA");
+	plua_pcall2 = (lua_pcall_t)GetPointerFromPattern("lua_pcall2", "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 60 4C 63 FA");
 	if (!plua_pcall2) {
 		return this->m_mainScriptMachineReady;
 	}
 
 	//
-	plua_tolstring = (lua_tolstring_t)GetPointerFromPattern("lua_tolstring", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 40 8B DA 48 8B F9");
+	plua_tolstring = (lua_tolstring_t)GetPointerFromPattern("lua_tolstring", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 40 8B DA 48 8B F9"); // "4C 8B C9 81 FA ? ? ? ? 7E 37"); // 
 	if (!plua_tolstring) {
 		return this->m_mainScriptMachineReady;
 	}
@@ -170,6 +235,34 @@ bool LuaFunctions::LoadPointers()
 	}
 
 	//
+	plua_pushcclosure = (lua_pushcclosure_t)GetPointerFromPattern("lua_pushcclosure", "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC 40 49 63 F0");
+	if (!plua_pushcclosure) {
+		return this->m_mainScriptMachineReady;
+	}
+
+	//
+	/*plua_setglobal = (lua_setglobal_t)GetPointerFromPattern("lua_setglobal", "");
+	if (!plua_setglobal) {
+		return this->m_mainScriptMachineReady;
+	}*/
+
+	//
+	plua_setfield = (lua_setfield_t)GetPointerFromPattern("lua_setfield", "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC 20 48 8B 41 48 49 8B F8 ");
+	if (!plua_setfield) {
+		return this->m_mainScriptMachineReady;
+	}
+
+	//
 	this->m_mainScriptMachineReady = true;
 	return m_mainScriptMachineReady;
+}
+
+bool LuaFunctions::Setup()
+{
+#define lua_register_(L,n,f) (lua_pushcfunction_(L, (f)), plua_setfield(L, -10002, (n))) //plua_setglobal(L, (n)))
+
+#define lua_pushcfunction_(L,f)	plua_pushcclosure(L, (f), 0)
+
+	lua_register_(GetL(), "PrintToLog", LuaFunctions::PrintToLog);
+	return true;
 }
