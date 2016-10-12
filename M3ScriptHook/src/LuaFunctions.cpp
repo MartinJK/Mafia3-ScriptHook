@@ -36,11 +36,12 @@
 #include <cstdint>
 #include <hooking/hooking.h>
 #include <fstream>
+#include <thread>
 
-/************************************************************************/
-/* Find pattern implementation											*/
-/************************************************************************/
-uint64_t GetPointerFromPattern(const char *name, const char *pattern) 
+ /************************************************************************/
+ /* Find pattern implementation											*/
+ /************************************************************************/
+uint64_t GetPointerFromPattern(const char *name, const char *pattern)
 {
 	auto pat = hooking::pattern(pattern).get(0).origaddr();
 	logPointer(name, pat);
@@ -50,10 +51,10 @@ uint64_t GetPointerFromPattern(const char *name, const char *pattern)
 /************************************************************************/
 /* Lua Load Buffer impl													*/
 /************************************************************************/
-typedef int(__cdecl *luaL_loadbuffer_t)(lua_State *L, char *buff, size_t size, char *name);
+typedef int32_t(__cdecl *luaL_loadbuffer_t)(lua_State *L, char *buff, size_t size, char *name);
 luaL_loadbuffer_t		pluaL_loadbuffer = nullptr;
 
-__declspec(dllexport) int luaL_loadbuffer_(lua_State *L, char *buff, size_t size, char *name)
+__declspec(dllexport) int32_t luaL_loadbuffer_(lua_State *L, char *buff, size_t size, char *name)
 {
 	return pluaL_loadbuffer(L, buff, size, name);
 }
@@ -61,10 +62,10 @@ __declspec(dllexport) int luaL_loadbuffer_(lua_State *L, char *buff, size_t size
 /************************************************************************/
 /* Lua pcall implementation                                             */
 /************************************************************************/
-typedef int(__cdecl *lua_pcall_t)(lua_State *L, int32_t nargs, int32_t nresults, int32_t errfunc);
+typedef int32_t(__cdecl *lua_pcall_t)(lua_State *L, int32_t nargs, int32_t nresults, int32_t errfunc);
 lua_pcall_t				plua_pcall2 = nullptr;
 
-__declspec(dllexport) int lua_pcall_(lua_State *L, int32_t nargs, int32_t nresults, int32_t errfunc)
+__declspec(dllexport) int32_t lua_pcall_(lua_State *L, int32_t nargs, int32_t nresults, int32_t errfunc)
 {
 	return plua_pcall2(L, nargs, nresults, errfunc);
 }
@@ -72,12 +73,23 @@ __declspec(dllexport) int lua_pcall_(lua_State *L, int32_t nargs, int32_t nresul
 /************************************************************************/
 /* Lua tolstring implementation                                         */
 /************************************************************************/
-typedef const char *	(__cdecl *lua_tolstring_t) (lua_State *L, int32_t idx);
-lua_tolstring_t			plua_tolstring = nullptr;
+typedef const char *	(__cdecl *lua_tostring_t) (lua_State *L, int32_t idx);
+lua_tostring_t			plua_tostring = nullptr;
 
-__declspec(dllexport) const char *lua_tolstring_(lua_State *L, int32_t idx)
+__declspec(dllexport) const char *lua_tostring_(lua_State *L, int32_t idx)
 {
-	return plua_tolstring(L, idx);
+	return plua_tostring(L, idx);
+}
+
+/************************************************************************/
+/* Lua isstring implementation                                         */
+/************************************************************************/
+typedef uint32_t(__cdecl *lua_isstring_t) (lua_State *L, int32_t idx);
+lua_isstring_t			plua_isstring = nullptr;
+
+__declspec(dllexport) uint32_t lua_isstring_(lua_State *L, int32_t idx)
+{
+	return plua_isstring(L, idx);
 }
 
 /************************************************************************/
@@ -124,7 +136,9 @@ __declspec(dllexport) lua_State *lua_setglobal_(lua_State *L, int idx, const cha
 	return plua_setfield(L, idx, k);
 }
 
-//
+/************************************************************************/
+/* (Havok) Lua gettop implementation			                        */
+/************************************************************************/
 int32_t lua_gettop_(lua_State *L)
 {
 	return (int32_t)((*(uintptr_t *)((uintptr_t)L + 72) - *(uintptr_t *)((uintptr_t)L + 80)) >> 4);
@@ -135,7 +149,7 @@ __declspec(dllexport) void logPointer(std::string name, uint64_t pointer)
 {
 	std::stringstream ss;
 	ss << name << " (" << std::hex << pointer << ")";
-	M3ScriptHook::instance()->log(ss.str());
+	M3ScriptHook::instance()->Log(ss.str().c_str());
 }
 
 //
@@ -151,25 +165,99 @@ lua_State* GetL(C_ScriptGameMachine *pMainScriptMachine)
 
 int32_t LuaFunctions::PrintToLog(lua_State *L)
 {
-	MessageBoxA(NULL, "works", "works", 0);
-	int32_t numargs = lua_gettop_(L);
-	M3ScriptHook::instance()->log(std::to_string(numargs));
-	if (numargs != 2)
-		return 0;
+	//static auto pat = hooking::pattern("40 53 48 83 EC 20 48 8B 41 48 48 8B D9 48 2B 41 50 48 C1 F8 04 FF C8").get(0).origaddr();
+	//static auto checkStruct = pat;// + *(int32_t *)(pat + 1) + 5;
 
-	const char *logFile = lua_tolstring_(L, 1);
-	const char *message = lua_tolstring_(L, 2);
+	//static auto pat2 = hooking::pattern("E8 ? ? ? ? 85 C0 74 5E 8B D3").get(0).origaddr();
+	//static auto isString = pat2 + *(int32_t *)(pat2 + 1) + 5;
 
-	M3ScriptHook::instance()->log(message);
-	M3ScriptHook::instance()->log(logFile);
+	//static auto pat3 = hooking::pattern("4C 8B C9 81 FA ? ? ? ? 7E 37").get(0).origaddr();
+	//static auto toString = pat3; //+ *(int32_t *)(pat3 + 1) + 5;
 
-	const char * msg1 = (const char*)*(uintptr_t *)((uintptr_t)L + 72) + 16 * 1;
-	M3ScriptHook::instance()->log(msg1);
+	const char *logFile;
+	const char *message;
 
-	std::fstream file(logFile, std::ios::out | std::ios::app);
-	file << message;
-	file << "\n";
-	file.close();
+	//auto context = hooking::func_call<uintptr_t, lua_State*, int32_t, uintptr_t, uintptr_t>(checkStruct, L, 2, 2, 0);
+	//M3ScriptHook::instance()->log("0x%p", (uintptr_t)context);
+
+	if (plua_isstring(L, 1))
+	{
+		logFile = plua_tostring(L, 1);
+	}
+
+	if (plua_isstring(L, 2))
+	{
+		message = plua_tostring(L, 2);
+	}
+
+	M3ScriptHook::instance()->LogToFile(logFile, message);
+	return 0;
+}
+
+int32_t LuaFunctions::BindKey(lua_State *L)
+{
+	M3ScriptHook::instance()->Log(__FUNCTION__);
+	const char *key = "";
+	const char *context = "";
+
+	if (plua_isstring(L, 1))
+	{
+		key = plua_tostring(L, 1);
+	}
+
+	if (plua_isstring(L, 2))
+	{
+		context = plua_tostring(L, 2);
+	}
+
+	M3ScriptHook::instance()->CreateKeyBind(key, context);
+	return 0;
+}
+
+int32_t LuaFunctions::UnbindKey(lua_State *L)
+{
+	M3ScriptHook::instance()->Log(__FUNCTION__);
+	const char *key = "";
+	const char *context = "";
+
+	if (plua_isstring(L, 1))
+	{
+		key = plua_tostring(L, 1);
+	}
+
+	if (plua_isstring(L, 2))
+	{
+		context = plua_tostring(L, 2);
+	}
+
+	M3ScriptHook::instance()->DestroyKeyBind(key, context);
+	return 0;
+}
+
+int32_t LuaFunctions::DelayBuffer(lua_State *L)
+{
+	M3ScriptHook::instance()->Log(__FUNCTION__);
+	const char *time = "";
+	const char *context = "";
+
+	if (plua_isstring(L, 1))
+	{
+		time = plua_tostring(L, 1);
+	}
+
+	if (plua_isstring(L, 2))
+	{
+		context = plua_tostring(L, 2);
+	}
+
+	// Pretty hacky implementation, we should consider using a Job queue instead and checking time?
+	std::thread th = std::thread([L, time, context]() {
+		M3ScriptHook::instance()->Log(__FUNCTION__);
+		auto mtime = std::stoi(time);
+		std::this_thread::sleep_for(std::chrono::milliseconds(mtime));
+		M3ScriptHook::instance()->ExecuteLua(L, context);
+	});
+	th.detach();
 
 	return 0;
 }
@@ -177,10 +265,10 @@ int32_t LuaFunctions::PrintToLog(lua_State *L)
 //
 LuaFunctions::LuaFunctions()
 {
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 	// Yep, it's thread blocking, but that's what I want, no processing of other stuff until this shit's ready..
 	do {
-		M3ScriptHook::instance()->log(__FUNCTION__ " Game is not ready, script engine not initialized, retry");
+		M3ScriptHook::instance()->Log(__FUNCTION__ " Game is not ready, script engine not initialized, retry");
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		std::this_thread::yield();
 	} while (!this->LoadPointers());
@@ -191,13 +279,14 @@ C_ScriptGameMachine *LuaFunctions::GetMainGameScriptMachine()
 	return this->m_pMainGameScriptMachine;
 }
 
-bool LuaFunctions::IsMainScriptMachineReady() 
+bool LuaFunctions::IsMainScriptMachineReady()
 {
 	return this->m_mainScriptMachineReady;
 }
 
 bool LuaFunctions::LoadPointers()
 {
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 	uint64_t engineAssignAddress = hooking::pattern("48 89 05 ? ? ? ? 48 8B 10 FF 92 ? ? ? ?").get(0).origaddr();
 	uint64_t engine = engineAssignAddress + *(int32_t *)(engineAssignAddress + 3) + 7;
 	logPointer("m_pMainGameScriptMachine", engine);
@@ -213,9 +302,21 @@ bool LuaFunctions::LoadPointers()
 		return this->m_mainScriptMachineReady;
 	}
 
+	//static auto pat = hooking::pattern("40 53 48 83 EC 20 48 8B 41 48 48 8B D9 48 2B 41 50 48 C1 F8 04 FF C8").get(0).origaddr();
+	//static auto checkStruct = pat;// + *(int32_t *)(pat + 1) + 5;
+
 	//
-	plua_tolstring = (lua_tolstring_t)GetPointerFromPattern("lua_tolstring", "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 40 8B DA 48 8B F9"); // "4C 8B C9 81 FA ? ? ? ? 7E 37"); // 
-	if (!plua_tolstring) {
+	plua_tostring = (lua_tostring_t)GetPointerFromPattern("lua_tostring", "4C 8B C9 81 FA ? ? ? ? 7E 37");
+	if (!plua_tostring) {
+		return this->m_mainScriptMachineReady;
+	}
+
+	//
+	auto isStringAddr = GetPointerFromPattern("lua_isstring", "E8 ? ? ? ? 85 C0 74 5E 8B D3");
+	auto isString = isStringAddr + *(int32_t *)(isStringAddr + 1) + 5;
+	logPointer("lua_isstring", isStringAddr);
+	plua_isstring = (lua_isstring_t)isString;
+	if (!plua_isstring) {
 		return this->m_mainScriptMachineReady;
 	}
 
@@ -252,6 +353,21 @@ bool LuaFunctions::LoadPointers()
 		return this->m_mainScriptMachineReady;
 	}
 
+	/*
+	static auto addr = hooking::pattern("F3 0F 10 0D ? ? ? ? 4C 8D 44 24 ? F3 48 0F 2C D0").get(0).origaddr();
+	static auto inc = hooking::inject_call<uintptr_t, lua_State*, int32_t>((addr + 0x62));
+	inc.inject([](lua_State *L, int32_t a2) {
+		const char *test;
+		if (plua_isstring(L, 1))
+		{
+			test = plua_tostring(L, 1);
+		}
+
+		M3ScriptHook::instance()->Log("Entity: %s", test);
+
+		return inc.call(L, a2);
+	});*/
+
 	//
 	this->m_mainScriptMachineReady = true;
 	return m_mainScriptMachineReady;
@@ -259,10 +375,30 @@ bool LuaFunctions::LoadPointers()
 
 bool LuaFunctions::Setup()
 {
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 #define lua_register_(L,n,f) (lua_pushcfunction_(L, (f)), plua_setfield(L, -10002, (n))) //plua_setglobal(L, (n)))
 
 #define lua_pushcfunction_(L,f)	plua_pushcclosure(L, (f), 0)
 
-	lua_register_(GetL(), "PrintToLog", LuaFunctions::PrintToLog);
+	auto L = GetL();
+	lua_register_(L, "printToLog", LuaFunctions::PrintToLog);
+
+	auto tmp = [L]() {
+		M3ScriptHook::instance()->Log(__FUNCTION__);
+		lua_register_(L, "bindKey", LuaFunctions::BindKey);
+	};
+	tmp();
+
+	auto tmp2 = [L]() {
+		M3ScriptHook::instance()->Log(__FUNCTION__);
+		lua_register_(L, "unbindKey", LuaFunctions::UnbindKey);
+	};
+	tmp2();
+
+	auto tmp3 = [L]() {
+		M3ScriptHook::instance()->Log(__FUNCTION__);
+		lua_register_(L, "setTimeout", LuaFunctions::DelayBuffer);
+	};
+	tmp3();
 	return true;
 }

@@ -37,8 +37,12 @@ class LuaFunctions : public singleton<LuaFunctions> {
 private:
 	bool m_mainScriptMachineReady = false;
 	C_ScriptGameMachine *m_pMainGameScriptMachine = nullptr;
+	std::map<unsigned char, std::string> keyBinds = {};
 
 	static int32_t PrintToLog(lua_State*);
+	static int32_t BindKey(lua_State*);
+	static int32_t UnbindKey(lua_State*);
+	static int32_t DelayBuffer(lua_State*);
 public:
 	LuaFunctions();
 	virtual ~LuaFunctions() = default;
@@ -47,10 +51,12 @@ public:
 	bool IsMainScriptMachineReady();
 	bool LoadPointers();
 	bool Setup();
+	void Process();
 };
 
 __declspec(dllexport) int luaL_loadbuffer_(lua_State *L, char *buff, size_t size, char *name);
 __declspec(dllexport) int lua_pcall_(lua_State *L, int nargs, int nresults, int errfunc);
-__declspec(dllexport) const char *lua_tolstring_(lua_State *L, int32_t idx);
+__declspec(dllexport) const char *lua_tostring_(lua_State *L, int32_t idx);
+__declspec(dllexport) uint32_t lua_isstring_(lua_State *L, int32_t idx);
 __declspec(dllexport) lua_State *lua_newthread_(lua_State *L);
 __declspec(dllexport) void logPointer(std::string name, uint64_t pointer);

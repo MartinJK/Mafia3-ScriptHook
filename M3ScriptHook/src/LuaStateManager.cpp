@@ -49,13 +49,13 @@ LuaStateManager::~LuaStateManager()
 
 void LuaStateManager::StartThread()
 {
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 	CreateThread(0, 0, (LPTHREAD_START_ROUTINE)LuaStateManager::WatcherThread, 0, 0, 0);
 }
 
 void LuaStateManager::StateChanged(lua_State *L)
 {
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 
 	++this->m_stateChangeCount;
 	this->m_pLuaState = L;
