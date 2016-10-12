@@ -36,6 +36,7 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
+#include <algorithm>
 
 #include <M3ScriptHook.h>
 #include <Common.h>
@@ -45,23 +46,95 @@
 
 M3ScriptHook::M3ScriptHook()
 {
-	log(__FUNCTION__);
+	Log(__FUNCTION__);
 	hooking::hooking_helpers::SetExecutableAddress((uintptr_t)GetModuleHandle(0)); 
 	hooking::ExecutableInfo::instance()->EnsureExecutableInfo();
 	hooking::ExecutableInfo::instance()->GetExecutableInfo().SetSSEPatternSearching(false);
+
+	this->keyBinds.clear();
 }
 
-void M3ScriptHook::log(std::string message)
+#define BUFFER_COUNT 8
+#define BUFFER_LENGTH 32768
+
+void M3ScriptHook::Log(const char* string, ...)
 {
+	static int32_t currentBuffer;
+	static char* buffer = nullptr;
+
+	if (!buffer)
+	{
+		buffer = new char[BUFFER_COUNT * BUFFER_LENGTH];
+	}
+
+	int32_t thisBuffer = currentBuffer;
+
+	va_list ap;
+	va_start(ap, string);
+	int32_t length = vsnprintf(&buffer[thisBuffer * BUFFER_LENGTH], BUFFER_LENGTH, string, ap);
+	va_end(ap);
+
+	if (length >= BUFFER_LENGTH)
+	{
+		__debugbreak();
+		exit(1);
+	}
+
+	buffer[(thisBuffer * BUFFER_LENGTH) + BUFFER_LENGTH - 1] = '\0';
+
+	currentBuffer = (currentBuffer + 1) % BUFFER_COUNT;
+
+	const char* msg =  &buffer[thisBuffer * BUFFER_LENGTH];
+
 	std::fstream file("ScriptHook.log", std::ios::out | std::ios::app);
-	file << message;
+	file << msg;
+	file << "\n";
+	file.close();
+}
+
+void M3ScriptHook::Log(std::string message)
+{
+	return this->Log(message.c_str());
+}
+
+void M3ScriptHook::LogToFile(const char *fileName, const char *string, ...)
+{
+	static int32_t currentBuffer;
+	static char* buffer = nullptr;
+
+	if (!buffer)
+	{
+		buffer = new char[BUFFER_COUNT * BUFFER_LENGTH];
+	}
+
+	int32_t thisBuffer = currentBuffer;
+
+	va_list ap;
+	va_start(ap, string);
+	int32_t length = vsnprintf(&buffer[thisBuffer * BUFFER_LENGTH], BUFFER_LENGTH, string, ap);
+	va_end(ap);
+
+	if (length >= BUFFER_LENGTH)
+	{
+		__debugbreak();
+		exit(1);
+	}
+
+	buffer[(thisBuffer * BUFFER_LENGTH) + BUFFER_LENGTH - 1] = '\0';
+
+	currentBuffer = (currentBuffer + 1) % BUFFER_COUNT;
+
+	const char* msg = &buffer[thisBuffer * BUFFER_LENGTH];
+
+	std::fstream file(fileName, std::ios::out | std::ios::app);
+	file << msg;
 	file << "\n";
 	file.close();
 }
 
 void M3ScriptHook::EndThreads()
 {
-	this->log(__FUNCTION__);
+	this->Log(__FUNCTION__);
 	this->m_bEnded = true;
 	PluginSystem::instance()->StopPlugins();
 	delete LuaStateManager::instance();
@@ -69,14 +142,14 @@ void M3ScriptHook::EndThreads()
 
 void M3ScriptHook::LoadScript(const std::string &file)
 {
-	this->log(__FUNCTION__);
+	this->Log(__FUNCTION__);
 	auto threadState = LuaStateManager::instance()->GetState();
 	this->LoadLuaFile(threadState, file);
 }
 
 void M3ScriptHook::LoadLuaFile(lua_State *L, const std::string &name)
 {
-	this->log(__FUNCTION__);
+	this->Log(__FUNCTION__);
 	std::string file = "function dofile (filename)local f = assert(loadfile(filename)) return f() end dofile(\"";
 	file.append(name);
 	file.append("\")");
@@ -86,33 +159,33 @@ void M3ScriptHook::LoadLuaFile(lua_State *L, const std::string &name)
 // Export
 LUA_API bool ExecuteLua(lua_State *L, const std::string &lua) 
 {
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 	return M3ScriptHook::instance()->ExecuteLua(L, lua);
 }
 
 bool M3ScriptHook::ExecuteLua(lua_State *L, const std::string &lua)
 {
-	this->log(std::string("Trying to execute: " + lua).c_str());
+	this->Log(std::string("Trying to execute: " + lua).c_str());
 
 	if (!L) {
-		this->log("BadState");
+		this->Log("BadState");
 		return false;
 	}
 
-	luaL_loadbuffer(L, const_cast<char*>(lua.c_str()), lua.length(), "test");
+	luaL_loadbuffer_(L, const_cast<char*>(lua.c_str()), lua.length(), "test");
 
-	int32_t result = lua_pcall2(L, 0, LUA_MULTRET, 0);
+	int32_t result = lua_pcall_(L, 0, LUA_MULTRET, 0);
 
 	if (result != 0)
 	{
 		if (LUA_ERRSYNTAX == result)
 		{
-			this->log("Error loading Lua code into buffer with (Syntax Error)");
+			this->Log("Error loading Lua code into buffer with (Syntax Error)");
 			return false;
 		}
 		else if (LUA_ERRMEM == result)
 		{
-			this->log("Error loading Lua code into buffer with (Memory Allocation Error)");
+			this->Log("Error loading Lua code into buffer with (Memory Allocation Error)");
 			return false;
 		}
 		else
@@ -120,25 +193,25 @@ bool M3ScriptHook::ExecuteLua(lua_State *L, const std::string &lua)
 			std::stringstream ss;
 			ss << "Error loading Lua code into buffer. Error ";
 			ss << result;
-			this->log(ss.str());
-			size_t size = 0;
-			const char *error = lua_tolstring(L, -1, &size);
-			this->log(error);
+			this->Log(ss.str());
+			const char *error = lua_tostring_(L, -1);
+			this->Log(error);
 			return false;
 		}
 	}
 	return true;
 }
 
-
 uint32_t WINAPI M3ScriptHook::mainThread(LPVOID) {
 	static M3ScriptHook *instance = M3ScriptHook::instance();
 
-	instance->log(__FUNCTION__);
+	instance->Log(__FUNCTION__);
 
 	while (!instance->HasEnded()) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		std::this_thread::yield(); // Process other threads
+
+		M3ScriptHook::instance()->ProcessKeyBinds();
 
 		if (GetAsyncKeyState(VK_F1) & 1) {
 			ScriptSystem::instance()->ReloadScripts();
@@ -164,7 +237,7 @@ uint32_t WINAPI M3ScriptHook::mainThread(LPVOID) {
 
 void M3ScriptHook::StartThreads()
 {
-	this->log(__FUNCTION__);
+	this->Log(__FUNCTION__);
 	CreateThread(0, 0, (LPTHREAD_START_ROUTINE)M3ScriptHook::mainThread, 0, 0, 0);
 
 	LuaStateManager::instance()->StartThread();
@@ -177,10 +250,90 @@ bool M3ScriptHook::HasEnded()
 
 void M3ScriptHook::Shutdown()
 {
-	this->log(__FUNCTION__);
+	this->Log(__FUNCTION__);
 	this->m_bEnded = true;
 	this->EndThreads();
 	FreeLibraryAndExitThread((HMODULE)GetModuleHandle("M3ScriptHook.dll"), 0);
+}
+
+void M3ScriptHook::CreateKeyBind(const char *key, const char *context)
+{
+	this->Log(__FUNCTION__);
+	std::unique_lock<std::recursive_mutex> lkScr(_keyBindMutex);
+
+	bool found = false;
+	uint8_t keyID = -1;
+	for (int32_t i = 0; i < 0xFE && !found; ++i) {
+		if (strcmp(key, BindableKeys[i]) == 0) {
+			keyID = i;
+			found = true;
+			break;
+		}
+	}
+	if (found) {
+		this->keyBinds[keyID] = context; //.push_back(new M3KeyBind(keyID, context));
+	}
+	else {
+		this->Log("Could not create keybind, key %s is unknown", key);
+	}
+}
+
+void M3ScriptHook::DestroyKeyBind(const char *key, const char *context)
+{
+	this->Log(__FUNCTION__);
+	//std::lock_guard<std::mutex> lk{ _keyBindMutex };
+	std::unique_lock<std::recursive_mutex> lkScr(_keyBindMutex);
+
+	bool found = false;
+	uint8_t keyID = -1;
+	for (int32_t i = 0; i < 0xFE && !found; ++i) {
+		if (strcmp(key, BindableKeys[i]) == 0) {
+			keyID = i;
+			found = true;
+			break;
+		}
+	}
+
+	if (found)
+	{
+		/*for (auto bind : keyBinds) //; it != keyBinds.end();)
+		{
+			if (bind->key == keyID) {
+				keyBinds.erase(std::remove(keyBinds.begin(), keyBinds.end(), bind), keyBinds.end());
+			}
+		}*/
+		this->keyBinds.erase(keyID);
+	}
+}
+
+void M3ScriptHook::ProcessKeyBinds()
+{
+	//this->Log(__FUNCTION__);
+	std::unique_lock<std::recursive_mutex> lkScr(_keyBindMutex);
+
+	auto L = GetL();
+	if (!L)
+		return;
+
+	//this->Log("%d", keyBinds.size());
+	if (!keyBinds.size())
+		return;
+
+	/*auto it = keyBinds.begin();
+	for (auto bind : keyBinds) //; it != keyBinds.end();)
+	{
+		if (GetAsyncKeyState(bind->key) & 1)
+		{
+			M3ScriptHook::instance()->ExecuteLua(L, bind->bind);
+		}
+		//++it;
+	}*/
+	for (auto it = keyBinds.begin(); it != keyBinds.end(); ++it) {
+		if (GetAsyncKeyState(it->first) & 1) {
+			M3ScriptHook::instance()->ExecuteLua(L, it->second);
+		}
+	}
+
 }
 
 BOOL APIENTRY DllMain(HMODULE, DWORD code, LPVOID) {
