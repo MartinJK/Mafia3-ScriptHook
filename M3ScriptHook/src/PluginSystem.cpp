@@ -1,3 +1,6 @@
+// Base Application taken from Klusark (GPLv2)
+// https://code.google.com/archive/p/mafia2injector/
+
 /*
  * Copyright (c) 2010 Barzakh (martinjk 'at' outlook 'dot' com)
  *
