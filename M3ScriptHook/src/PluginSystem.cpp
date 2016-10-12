@@ -36,7 +36,7 @@
 
 void PluginSystem::LoadPlugins()
 {
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 
 	WIN32_FIND_DATA data;
 	HANDLE file = FindFirstFileEx("plugins\\*.dll", FindExInfoStandard, &data, FindExSearchNameMatch, 0, 0);
@@ -51,19 +51,19 @@ void PluginSystem::LoadPlugins()
 
 		HMODULE lib = LoadLibraryA(path.c_str());
 		if (!lib) {
-			M3ScriptHook::instance()->log(__FUNCTION__ " failed to load plugin (LoadLibrary) " + path);
+			M3ScriptHook::instance()->Log(std::string(__FUNCTION__ " failed to load plugin (LoadLibrary) " + path).c_str());
 			continue;
 		}
 
 		StartPlugin_t pStartPlugin = (StartPlugin_t)GetProcAddress(lib, "StartPlugin");
 		if (!pStartPlugin) {
-			M3ScriptHook::instance()->log(__FUNCTION__ " failed to find start routine in plugin " + path);
+			M3ScriptHook::instance()->Log(std::string(__FUNCTION__ " failed to find start routine in plugin " + path).c_str());
 			continue;
 		}
 
 		StopPlugin_t pStopPlugin = (StopPlugin_t)GetProcAddress(lib, "StopPlugin");
 		if (!pStopPlugin) {
-			M3ScriptHook::instance()->log(__FUNCTION__ " failed to find stop routine in plugin " + path);
+			M3ScriptHook::instance()->Log(std::string(__FUNCTION__ " failed to find stop routine in plugin " + path).c_str());
 			continue;
 		}
 
@@ -73,18 +73,18 @@ void PluginSystem::LoadPlugins()
 		plugin.pStopPlugin = pStopPlugin;
 		plugins.push_back(plugin);
 
-		M3ScriptHook::instance()->log(__FUNCTION__ " loaded plugin " + plugin.name);
+		M3ScriptHook::instance()->Log(std::string(__FUNCTION__ " loaded plugin " + plugin.name).c_str());
 
 	} while (file && FindNextFile(file, &data));
 }
 
 void PluginSystem::UnloadPlugins()
 {
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 	this->StopPlugins();
 
 	for (auto& plugin : this->plugins) {
-		M3ScriptHook::instance()->log(__FUNCTION__ " unloaded plugin " + plugin.name);
+		M3ScriptHook::instance()->Log(std::string(__FUNCTION__ " unloaded plugin " + plugin.name).c_str());
 		FreeLibrary(GetModuleHandleA(plugin.name.c_str()));
 	}
 
@@ -93,7 +93,7 @@ void PluginSystem::UnloadPlugins()
 
 void PluginSystem::ReloadPlugins()
 {
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 	if (this->plugins.size() != 0) {
 		this->UnloadPlugins();
 	}
@@ -104,7 +104,7 @@ void PluginSystem::ReloadPlugins()
 
 void PluginSystem::StartPlugins()
 {
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 #if 0
 	for (auto& plugin : this->plugins) {
 		plugin.pStartPlugin(LuaStateManager::instance()->GetState());
@@ -118,7 +118,7 @@ void PluginSystem::StartPlugins()
 
 void PluginSystem::StopPlugins()
 {
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 #if 0
 	for (auto& plugin : this->plugins) {
 		plugin.pStopPlugin();

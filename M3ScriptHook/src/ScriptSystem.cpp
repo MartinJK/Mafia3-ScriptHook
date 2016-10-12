@@ -38,7 +38,7 @@ void ScriptSystem::LoadScripts()
 {
 	//scripts.clear(); // only add this when we unload scripts..
 
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 
 	WIN32_FIND_DATA data;
 	HANDLE file = FindFirstFileEx("scripts\\*.lua", FindExInfoStandard, &data, FindExSearchNameMatch, 0, 0);
@@ -55,19 +55,19 @@ void ScriptSystem::LoadScripts()
 
 		M3ScriptHook::instance()->LoadScript(path);
 
-		M3ScriptHook::instance()->log(__FUNCTION__ " loaded script " + path);
+		M3ScriptHook::instance()->Log(__FUNCTION__ " loaded script " + path);
 	} while (file && FindNextFile(file, &data));
 }
 
 void ScriptSystem::UnloadScripts()
 {
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 	// TBD
 }
 
 void ScriptSystem::ReloadScripts()
 {
-	M3ScriptHook::instance()->log(__FUNCTION__);
+	M3ScriptHook::instance()->Log(__FUNCTION__);
 	if (this->scripts.size() != 0) {
 		this->UnloadScripts();
 	}
