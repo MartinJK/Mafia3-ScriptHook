@@ -1,1 +1,0 @@
-game.game:GetActivePlayer():GetOwner():SetDirty(1)
