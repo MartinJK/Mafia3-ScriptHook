@@ -1214,6 +1214,7 @@ namespace hooking
 
 					if (matches().size() == 0)
 					{
+						MessageBoxA(NULL, "Could not find pattern! Game will crash now!", "Exception", MB_OK);
 						throw std::runtime_error("Could not find pattern!");
 					}
 

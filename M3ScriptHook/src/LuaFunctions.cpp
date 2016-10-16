@@ -47,7 +47,6 @@
 uint64_t GetPointerFromPattern(const char *name, const char *pattern)
 {
 	auto pat = hooking::pattern(pattern).get(0).origaddr();
-	logPointer(name, pat);
 	return pat;
 }
 
@@ -109,12 +108,12 @@ __declspec(dllexport) lua_State *lua_newthread_(lua_State *L)
 /************************************************************************/
 /* Lua pushcclosure implementation                                      */
 /************************************************************************/
-typedef	lua_State *		(__cdecl *lua_pushcclosure_t) (lua_State *L, lua_CFunction fn, int n);
+typedef	lua_State *		(__cdecl *lua_pushcclosure_t) (lua_State *L, lua_CFunction fn, int n, int64_t a);
 lua_pushcclosure_t		plua_pushcclosure = nullptr;
 
-__declspec(dllexport) lua_State *lua_pushcclosure_(lua_State *L, lua_CFunction fn, int n)
+__declspec(dllexport) lua_State *lua_pushcclosure_(lua_State *L, lua_CFunction fn, int n, int64_t a = 0)
 {
-	return plua_pushcclosure(L, fn, n);
+	return plua_pushcclosure(L, fn, n, a);
 }
 
 /************************************************************************/
@@ -168,28 +167,14 @@ lua_State* GetL(C_ScriptGameMachine *pMainScriptMachine)
 
 int32_t LuaFunctions::PrintToLog(lua_State *L)
 {
-	//static auto pat = hooking::pattern("40 53 48 83 EC 20 48 8B 41 48 48 8B D9 48 2B 41 50 48 C1 F8 04 FF C8").get(0).origaddr();
-	//static auto checkStruct = pat;// + *(int32_t *)(pat + 1) + 5;
-
-	//static auto pat2 = hooking::pattern("E8 ? ? ? ? 85 C0 74 5E 8B D3").get(0).origaddr();
-	//static auto isString = pat2 + *(int32_t *)(pat2 + 1) + 5;
-
-	//static auto pat3 = hooking::pattern("4C 8B C9 81 FA ? ? ? ? 7E 37").get(0).origaddr();
-	//static auto toString = pat3; //+ *(int32_t *)(pat3 + 1) + 5;
-
 	const char *logFile;
 	const char *message;
 
-	//auto context = hooking::func_call<uintptr_t, lua_State*, int32_t, uintptr_t, uintptr_t>(checkStruct, L, 2, 2, 0);
-	//M3ScriptHook::instance()->log("0x%p", (uintptr_t)context);
-
-	if (plua_isstring(L, 1))
-	{
+	if (plua_isstring(L, 1)) {
 		logFile = plua_tostring(L, 1);
 	}
 
-	if (plua_isstring(L, 2))
-	{
+	if (plua_isstring(L, 2)) {
 		message = plua_tostring(L, 2);
 	}
 
@@ -203,13 +188,11 @@ int32_t LuaFunctions::BindKey(lua_State *L)
 	const char *key = "";
 	const char *context = "";
 
-	if (plua_isstring(L, 1))
-	{
+	if (plua_isstring(L, 1)) {
 		key = plua_tostring(L, 1);
 	}
 
-	if (plua_isstring(L, 2))
-	{
+	if (plua_isstring(L, 2)) {
 		context = plua_tostring(L, 2);
 	}
 
@@ -223,13 +206,11 @@ int32_t LuaFunctions::UnbindKey(lua_State *L)
 	const char *key = "";
 	const char *context = "";
 
-	if (plua_isstring(L, 1))
-	{
+	if (plua_isstring(L, 1)) {
 		key = plua_tostring(L, 1);
 	}
 
-	if (plua_isstring(L, 2))
-	{
+	if (plua_isstring(L, 2)) {
 		context = plua_tostring(L, 2);
 	}
 
@@ -243,13 +224,11 @@ int32_t LuaFunctions::DelayBuffer(lua_State *L)
 	const char *time = "";
 	const char *context = "";
 
-	if (plua_isstring(L, 1))
-	{
+	if (plua_isstring(L, 1)) {
 		time = plua_tostring(L, 1);
 	}
 
-	if (plua_isstring(L, 2))
-	{
+	if (plua_isstring(L, 2)) {
 		context = plua_tostring(L, 2);
 	}
 
@@ -263,6 +242,30 @@ int32_t LuaFunctions::DelayBuffer(lua_State *L)
 	th.detach();
 
 	return 0;
+}
+
+int32_t LuaFunctions::FNV32a(lua_State *L)
+{
+	M3ScriptHook::instance()->Log(__FUNCTION__);
+	const char *toHash = "";
+
+	if (plua_isstring(L, 1)) {
+		toHash = plua_tostring(L, 1);
+	}
+
+	static auto fnvHash = [](const char* str)
+	{
+		const size_t length = strlen(str) + 1;
+		unsigned int hash = 2166136261u;
+		for (size_t i = 0; i < length; ++i)
+		{
+			hash ^= *str++;
+			hash *= 16777619u;
+		}
+		return hash;
+	};
+
+	return fnvHash(toHash);
 }
 
 //
@@ -292,24 +295,29 @@ bool LuaFunctions::LoadPointers()
 	M3ScriptHook::instance()->Log(__FUNCTION__);
 	uint64_t engineAssignAddress = hooking::pattern("48 89 05 ? ? ? ? 48 8B 10 FF 92 ? ? ? ?").get(0).origaddr();
 	uint64_t engine = engineAssignAddress + *(int32_t *)(engineAssignAddress + 3) + 7;
-	logPointer("m_pMainGameScriptMachine", engine);
-	this->m_pMainGameScriptMachine = *(C_ScriptGameMachine **)engine;
+	if (*(uintptr_t *)engine == 0) {
+		return this->m_mainScriptMachineReady;
+	}
 
+	//
+	this->m_pMainGameScriptMachine = *(C_ScriptGameMachine **)engine;
+	logPointer("m_pMainGameScriptMachine", engine);
 	if (!this->m_pMainGameScriptMachine) {
 		return this->m_mainScriptMachineReady;
 	}
 
 	//
-	plua_pcall2 = (lua_pcall_t)GetPointerFromPattern("lua_pcall2", "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 60 4C 63 FA");
+	auto pCallAddr = GetPointerFromPattern("lua_pcall", "E8 ? ? ? ? 85 C0 74 05 48 83 43 ? ?");
+	auto pCall = pCallAddr + *(int32_t *)(pCallAddr + 1) + 5;
+	logPointer("lua_pcall", pCallAddr);
+	plua_pcall2 = (lua_pcall_t)pCall;
 	if (!plua_pcall2) {
 		return this->m_mainScriptMachineReady;
 	}
 
-	//static auto pat = hooking::pattern("40 53 48 83 EC 20 48 8B 41 48 48 8B D9 48 2B 41 50 48 C1 F8 04 FF C8").get(0).origaddr();
-	//static auto checkStruct = pat;// + *(int32_t *)(pat + 1) + 5;
-
 	//
 	plua_tostring = (lua_tostring_t)GetPointerFromPattern("lua_tostring", "4C 8B C9 81 FA ? ? ? ? 7E 37");
+	logPointer("lua_tostring", (uintptr_t)plua_tostring);
 	if (!plua_tostring) {
 		return this->m_mainScriptMachineReady;
 	}
@@ -324,9 +332,9 @@ bool LuaFunctions::LoadPointers()
 	}
 
 	//
-	auto loadBufferAddr = GetPointerFromPattern("luaL_loadbuffer", "E8 ? ? ? ? 8B F8 85 FF 74 17");
+	auto loadBufferAddr = GetPointerFromPattern("lua_loadbuffer", "E8 ? ? ? ? 8B F8 85 FF 74 17");
 	auto loadBuffer = loadBufferAddr + *(int32_t *)(loadBufferAddr + 1) + 5;
-	logPointer("plua_loadBuffer", loadBuffer);
+	logPointer("lua_loadBuffer", loadBuffer);
 	pluaL_loadbuffer = (luaL_loadbuffer_t)loadBuffer;
 	if (!pluaL_loadbuffer) {
 		return this->m_mainScriptMachineReady;
@@ -334,74 +342,81 @@ bool LuaFunctions::LoadPointers()
 
 	//
 	plua_newthread = (lua_newthread_t)GetPointerFromPattern("lua_newthread", "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC 40 48 8B 79 10 48 8B F1");
+	logPointer("lua_newthread", (uintptr_t)plua_newthread);
 	if (!plua_newthread) {
 		return this->m_mainScriptMachineReady;
 	}
 
 	//
-	plua_pushcclosure = (lua_pushcclosure_t)GetPointerFromPattern("lua_pushcclosure", "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC 40 49 63 F0");
+	auto pushClosureAddr = GetPointerFromPattern("lua_pushcclosure", "E8 ? ? ? ? 48 8B 47 48 45 33 C9");
+	auto pushClosure = pushClosureAddr + *(int32_t *)(pushClosureAddr + 1) + 5;
+	logPointer("lua_pushcclosure", pushClosure);
+	plua_pushcclosure = (lua_pushcclosure_t)pushClosure;
 	if (!plua_pushcclosure) {
 		return this->m_mainScriptMachineReady;
 	}
 
 	//
-	/*plua_setglobal = (lua_setglobal_t)GetPointerFromPattern("lua_setglobal", "");
-	if (!plua_setglobal) {
-		return this->m_mainScriptMachineReady;
-	}*/
-
-	//
-	plua_setfield = (lua_setfield_t)GetPointerFromPattern("lua_setfield", "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC 20 48 8B 41 48 49 8B F8 ");
+	auto setFieldAddr = GetPointerFromPattern("lua_setfield", "E8 ? ? ? ? 8B D5 49 8B CF E8 ? ? ? ? 41 8B D6");
+	auto setField = setFieldAddr + *(int32_t *)(setFieldAddr + 1) + 5;
+	logPointer("lua_setfield", setField);
+	plua_setfield = (lua_setfield_t)setField;
 	if (!plua_setfield) {
 		return this->m_mainScriptMachineReady;
 	}
 
+	//
+	auto setGobalAddr = GetPointerFromPattern("lua_setglobal", "E8 ? ? ? ? 48 8B 54 24 ? 48 8B CE E8 ? ? ? ? 85 C0");
+	auto setGlobal = setGobalAddr + *(int32_t *)(setGobalAddr + 1) + 5;
+	logPointer("lua_setglobal", setGlobal);
+	plua_setglobal = (lua_setglobal_t)setGlobal;
+	if (!plua_setglobal) {
+		return this->m_mainScriptMachineReady;
+	}
+
+	//
+	this->m_mainScriptMachineReady = true;
+
+	M3ScriptHook::instance()->Log(__FUNCTION__ " Finished");
+	return m_mainScriptMachineReady;
+
+	static auto pat = hooking::pattern("4C 8B 0D ? ? ? ? 33 ED").get(0).origaddr();
+	auto patAddr = pat + *(int32_t *)(pat + 3) + 7;
+	patAddr = *(uint64_t *)patAddr;
+	memcpy((void*)patAddr, "/gui/main_menu_dev.swf", strlen("/gui/main_menu_dev.swf"));
 	/*
 	static auto addr = hooking::pattern("F3 0F 10 0D ? ? ? ? 4C 8D 44 24 ? F3 48 0F 2C D0").get(0).origaddr();
 	static auto inc = hooking::inject_call<uintptr_t, lua_State*, int32_t>((addr + 0x62));
 	inc.inject([](lua_State *L, int32_t a2) {
-		const char *test;
-		if (plua_isstring(L, 1))
-		{
-			test = plua_tostring(L, 1);
-		}
+	const char *test;
+	if (plua_isstring(L, 1))
+	{
+	test = plua_tostring(L, 1);
+	}
 
-		M3ScriptHook::instance()->Log("Entity: %s", test);
+	M3ScriptHook::instance()->Log("Entity: %s", test);
 
-		return inc.call(L, a2);
+	return inc.call(L, a2);
 	});*/
-
-	//
-	this->m_mainScriptMachineReady = true;
-	return m_mainScriptMachineReady;
 }
 
 bool LuaFunctions::Setup()
 {
 	M3ScriptHook::instance()->Log(__FUNCTION__);
-#define lua_register_(L,n,f) (lua_pushcfunction_(L, (f)), plua_setfield(L, -10002, (n))) //plua_setglobal(L, (n)))
 
-#define lua_pushcfunction_(L,f)	plua_pushcclosure(L, (f), 0)
+	static auto SetupGlobalLuaFunction = [](lua_State *L, const char *n, lua_CFunction f) {
+		M3ScriptHook::instance()->Log(__FUNCTION__);
+		plua_pushcclosure(L, f, 0, 0);
+		plua_setglobal(L, n);
+		//plua_setfield(L, -10002, (n));
+	};
 
 	auto L = GetL();
-	lua_register_(L, "printToLog", LuaFunctions::PrintToLog);
-
-	auto tmp = [L]() {
-		M3ScriptHook::instance()->Log(__FUNCTION__);
-		lua_register_(L, "bindKey", LuaFunctions::BindKey);
-	};
-	tmp();
-
-	auto tmp2 = [L]() {
-		M3ScriptHook::instance()->Log(__FUNCTION__);
-		lua_register_(L, "unbindKey", LuaFunctions::UnbindKey);
-	};
-	tmp2();
-
-	auto tmp3 = [L]() {
-		M3ScriptHook::instance()->Log(__FUNCTION__);
-		lua_register_(L, "setTimeout", LuaFunctions::DelayBuffer);
-	};
-	tmp3();
+	SetupGlobalLuaFunction(L, "printToLog", LuaFunctions::PrintToLog);
+	SetupGlobalLuaFunction(L, "bindKey", LuaFunctions::BindKey);
+	SetupGlobalLuaFunction(L, "unbindKey", LuaFunctions::UnbindKey);
+	SetupGlobalLuaFunction(L, "setTimeout", LuaFunctions::DelayBuffer);
+	SetupGlobalLuaFunction(L, "fnv32", LuaFunctions::FNV32a);
+	
 	return true;
 }

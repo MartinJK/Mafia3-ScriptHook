@@ -216,7 +216,11 @@ uint32_t WINAPI M3ScriptHook::mainThread(LPVOID) {
 		if (GetAsyncKeyState(VK_F1) & 1) {
 			ScriptSystem::instance()->ReloadScripts();
 		}
-
+		if (GetAsyncKeyState(VK_F2) & 1) {
+			instance->Shutdown();
+			PluginSystem::instance()->ReloadPlugins();
+		}
+		/*
 		if (GetAsyncKeyState(VK_F3) & 1) {
 			instance->Shutdown();
 		}
@@ -224,12 +228,8 @@ uint32_t WINAPI M3ScriptHook::mainThread(LPVOID) {
 		if (GetAsyncKeyState(VK_F6) & 1) {
 			instance->Shutdown();
 			PluginSystem::instance()->UnloadPlugins();
-		}
+		}*/
 
-		if (GetAsyncKeyState(VK_F7) & 1) {
-			instance->Shutdown();
-			PluginSystem::instance()->ReloadPlugins();
-		}
 	}
 
 	return 0;

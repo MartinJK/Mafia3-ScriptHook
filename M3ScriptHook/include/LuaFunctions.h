@@ -43,6 +43,7 @@ private:
 	static int32_t BindKey(lua_State*);
 	static int32_t UnbindKey(lua_State*);
 	static int32_t DelayBuffer(lua_State*);
+	static int32_t FNV32a(lua_State*);
 public:
 	LuaFunctions();
 	virtual ~LuaFunctions() = default;
