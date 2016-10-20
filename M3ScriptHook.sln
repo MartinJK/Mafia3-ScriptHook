@@ -11,8 +11,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExampleDLLPlugin", "Example
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libudis86", "shared\include\hooking\libudis86.vcxproj", "{D4AAA849-F280-2B84-46B2-C9524602F05F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "M3ScriptHookLoader", "M3ScriptHookLoader\PlayGTAMP.vcxproj", "{564D59A2-9FDC-0E1D-F222-9C488DD6A8A0}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -35,10 +33,6 @@ Global
 		{D4AAA849-F280-2B84-46B2-C9524602F05F}.Debug|x64.Build.0 = Debug|x64
 		{D4AAA849-F280-2B84-46B2-C9524602F05F}.Release|x64.ActiveCfg = Release|x64
 		{D4AAA849-F280-2B84-46B2-C9524602F05F}.Release|x64.Build.0 = Release|x64
-		{564D59A2-9FDC-0E1D-F222-9C488DD6A8A0}.Debug|x64.ActiveCfg = Debug|x64
-		{564D59A2-9FDC-0E1D-F222-9C488DD6A8A0}.Debug|x64.Build.0 = Debug|x64
-		{564D59A2-9FDC-0E1D-F222-9C488DD6A8A0}.Release|x64.ActiveCfg = Release|x64
-		{564D59A2-9FDC-0E1D-F222-9C488DD6A8A0}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
