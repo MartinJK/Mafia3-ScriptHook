@@ -1,17 +1,27 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "M3ScriptHookLauncher", "M3ScriptHookLauncher\M3ScriptHookLauncher.vcxproj", "{CA29DBC0-E648-4470-AA81-9082B143FBDA}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D4AAA849-F280-2B84-46B2-C9524602F05F} = {D4AAA849-F280-2B84-46B2-C9524602F05F}
+		{8D715BC3-5BBC-42E2-9F0D-29FBAFB6490B} = {8D715BC3-5BBC-42E2-9F0D-29FBAFB6490B}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "M3ScriptHook", "M3ScriptHook\M3ScriptHook.vcxproj", "{8D715BC3-5BBC-42E2-9F0D-29FBAFB6490B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D4AAA849-F280-2B84-46B2-C9524602F05F} = {D4AAA849-F280-2B84-46B2-C9524602F05F}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExampleDLLPlugin", "ExampleDLLPlugin\ExampleDLLPlugin.vcxproj", "{A7650B52-67CB-406C-BD46-731ED539C9FE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D4AAA849-F280-2B84-46B2-C9524602F05F} = {D4AAA849-F280-2B84-46B2-C9524602F05F}
+		{CA29DBC0-E648-4470-AA81-9082B143FBDA} = {CA29DBC0-E648-4470-AA81-9082B143FBDA}
+		{8D715BC3-5BBC-42E2-9F0D-29FBAFB6490B} = {8D715BC3-5BBC-42E2-9F0D-29FBAFB6490B}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libudis86", "shared\include\hooking\libudis86.vcxproj", "{D4AAA849-F280-2B84-46B2-C9524602F05F}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "M3ScriptHookLoader", "M3ScriptHookLoader\PlayGTAMP.vcxproj", "{564D59A2-9FDC-0E1D-F222-9C488DD6A8A0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,10 +45,6 @@ Global
 		{D4AAA849-F280-2B84-46B2-C9524602F05F}.Debug|x64.Build.0 = Debug|x64
 		{D4AAA849-F280-2B84-46B2-C9524602F05F}.Release|x64.ActiveCfg = Release|x64
 		{D4AAA849-F280-2B84-46B2-C9524602F05F}.Release|x64.Build.0 = Release|x64
-		{564D59A2-9FDC-0E1D-F222-9C488DD6A8A0}.Debug|x64.ActiveCfg = Debug|x64
-		{564D59A2-9FDC-0E1D-F222-9C488DD6A8A0}.Debug|x64.Build.0 = Debug|x64
-		{564D59A2-9FDC-0E1D-F222-9C488DD6A8A0}.Release|x64.ActiveCfg = Release|x64
-		{564D59A2-9FDC-0E1D-F222-9C488DD6A8A0}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
