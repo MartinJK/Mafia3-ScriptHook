@@ -48,14 +48,20 @@ void ScriptSystem::LoadScripts()
 	}
 
 	do {
-		std::string path = "scripts/";
-		path += data.cFileName;
+		std::string filename = data.cFileName;
+		std::string path = "scripts/" + filename;
 
-		scripts.push_back(path);
+		// Ignore the file if it starts with _ (underscore)
+		if (filename[0] == '_') {
+			M3ScriptHook::instance()->Log(__FUNCTION__ " ignored script " + filename);
+		}
+		else {
+			scripts.push_back(path);
 
-		M3ScriptHook::instance()->LoadScript(path);
+			M3ScriptHook::instance()->LoadScript(path);
 
-		M3ScriptHook::instance()->Log(__FUNCTION__ " loaded script " + path);
+			M3ScriptHook::instance()->Log(__FUNCTION__ " loaded script " + filename);
+		}
 	} while (file && FindNextFile(file, &data));
 }
 
